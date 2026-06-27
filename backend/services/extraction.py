@@ -93,7 +93,9 @@ class AIExtractionService:
         Send invoice text to LLM for structured extraction.
         Routes to the configured provider.
         """
-        prompt = EXTRACTION_PROMPT.replace("{invoice_text}", raw_text[:8000])
+        # Ollama gets truncated text for faster local inference
+        text_limit = 4000 if self.provider == "ollama" else 8000
+        prompt = EXTRACTION_PROMPT.replace("{invoice_text}", raw_text[:text_limit])
 
         if self.provider == "ollama":
             return await self._call_ollama(prompt)
@@ -114,13 +116,13 @@ class AIExtractionService:
 
         start_time = time.time()
         try:
-            async with httpx.AsyncClient(timeout=120.0) as client:
+            async with httpx.AsyncClient(timeout=300.0) as client:
                 response = await client.post(
                     url,
                     json={
                         "model": model,
                         "messages": [{"role": "user", "content": prompt}],
-                        "max_tokens": self.max_tokens,
+                        "max_tokens": 2048,  # Reduced for faster local inference
                         "temperature": 0.1,
                         "stream": False,
                     },

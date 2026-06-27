@@ -77,6 +77,18 @@ class PipelineOrchestrator:
             raw_text = self.ingestion.extract_text_from_spreadsheet(file_path, file_ext)
             ocr_confidence = 0.98  # Very high confidence for structured data
 
+        # Fallback: try reading as plain text if nothing extracted
+        if not raw_text or len(raw_text.strip()) < 10:
+            try:
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                    fallback_text = f.read()
+                if fallback_text and len(fallback_text.strip()) >= 10:
+                    raw_text = fallback_text
+                    ocr_confidence = 0.90
+                    log.info("pipeline.fallback_text", invoice_id=invoice_id, chars=len(raw_text))
+            except Exception:
+                pass
+
         if not raw_text or len(raw_text.strip()) < 10:
             log.warning("pipeline.no_text", invoice_id=invoice_id)
             await self._update_status(db, invoice_id, InvoiceStatus.NEEDS_REVIEW.value)

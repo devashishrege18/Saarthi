@@ -1,0 +1,30 @@
+INVOICE
+
+TechFlow Solutions Pvt. Ltd.
+42 Koramangala, Bangalore 560034
+GSTIN: 29AABCT1234F1ZN
+
+Invoice No: INV-2026-0847
+Date: 2026-06-15
+Due Date: 2026-07-15
+PO: PO-2026-3391
+
+Bill To:
+Mozilla Foundation
+331 E Evelyn Ave, Mountain View, CA 94041
+
+Description                                          Qty    Unit Price      Amount
+-------------------------------------------------------------------------------------
+AI Model Training - Claude Integration (40 hrs)       40     2,500.00   1,00,000.00
+Frontend Development - React Dashboard (60 hrs)       60     2,000.00   1,20,000.00
+Backend API Development - FastAPI (50 hrs)            50     2,200.00   1,10,000.00
+QA Testing & Documentation (20 hrs)                   20     1,500.00      30,000.00
+Cloud Infrastructure Setup                             1    15,000.00      15,000.00
+-------------------------------------------------------------------------------------
+
+Subtotal:    3,75,000.00
+GST (18%):      67,500.00
+Total (INR): 4,42,500.00
+
+Payment Terms: Net 30
+Bank: HDFC Bank | A/C: 50100123456789 | IFSC: HDFC0001234

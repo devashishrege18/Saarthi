@@ -58,7 +58,7 @@ WEIGHT_FRAUD = float(os.getenv("WEIGHT_FRAUD", "0.15"))
 MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "20"))
 ALLOWED_EXTENSIONS = {
     ".pdf", ".png", ".jpg", ".jpeg", ".tiff", ".tif",
-    ".xls", ".xlsx", ".csv"
+    ".xls", ".xlsx", ".csv", ".txt"
 }
 
 # ─── Frontend ─────────────────────────────────────────────────────────────────
