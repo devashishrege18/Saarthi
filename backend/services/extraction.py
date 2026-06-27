@@ -86,6 +86,25 @@ INVOICE:
 
 JSON:"""
 
+# Simple, fast, selective prompt for timesheets/data inputs
+TIMESHEET_PROMPT = """Extract timesheet fields as JSON. Return ONLY valid JSON, no explanation.
+
+Fields to extract:
+- employee_name: name of the contractor/employee
+- vendor_name: company/agency name or employee_name if individual
+- total_hours (number): total hours worked
+- hourly_rate (number): hourly payment rate
+- total_amount (number): total payment amount
+- period_start (YYYY-MM-DD): start of work period
+- period_end (YYYY-MM-DD): end of work period
+
+For each field use: {"value": <value or null>, "confidence": <0.0-1.0>}
+
+TIMESHEET:
+{timesheet_text}
+
+JSON:"""
+
 
 class AIExtractionService:
     """Calls LLM APIs for semantic invoice field extraction. Supports multiple providers."""
@@ -104,16 +123,19 @@ class AIExtractionService:
         else:
             return OPENAI_MODEL
 
-    async def extract_fields(self, raw_text: str) -> dict:
+    async def extract_fields(self, raw_text: str, is_selective_timesheet: bool = False) -> dict:
         """
-        Send invoice text to LLM for structured extraction.
+        Send invoice/timesheet text to LLM for structured extraction.
         Routes to the configured provider.
         """
-        # Local models get a shorter prompt + less text for speed
-        if self.provider == "ollama":
-            prompt = EXTRACTION_PROMPT_LOCAL.replace("{invoice_text}", raw_text[:2000])
+        if is_selective_timesheet:
+            prompt = TIMESHEET_PROMPT.replace("{timesheet_text}", raw_text[:2000])
         else:
-            prompt = EXTRACTION_PROMPT.replace("{invoice_text}", raw_text[:8000])
+            # Local models get a shorter prompt + less text for speed
+            if self.provider == "ollama":
+                prompt = EXTRACTION_PROMPT_LOCAL.replace("{invoice_text}", raw_text[:2000])
+            else:
+                prompt = EXTRACTION_PROMPT.replace("{invoice_text}", raw_text[:8000])
 
         if self.provider == "ollama":
             return await self._call_ollama(prompt)
@@ -305,8 +327,6 @@ class AIExtractionService:
             log.error("ai.openai.error", error=str(e))
             return self._mock_extraction(prompt)
 
-    # ─── Response Parsing (shared across all providers) ───────────────────────
-
     def _parse_extraction(self, raw_json: str) -> dict:
         """Parse and normalize the LLM extraction response."""
         try:
@@ -327,6 +347,56 @@ class AIExtractionService:
 
         fields = {}
         confidence_map = {}
+
+        # Check if this is a timesheet payload
+        if "employee_name" in data or "total_hours" in data:
+            emp_name = data.get("employee_name", {}).get("value") if isinstance(data.get("employee_name"), dict) else data.get("employee_name")
+            vend_name = data.get("vendor_name", {}).get("value") if isinstance(data.get("vendor_name"), dict) else data.get("vendor_name")
+            total_h = data.get("total_hours", {}).get("value") if isinstance(data.get("total_hours"), dict) else data.get("total_hours")
+            rate = data.get("hourly_rate", {}).get("value") if isinstance(data.get("hourly_rate"), dict) else data.get("hourly_rate")
+            amount = data.get("total_amount", {}).get("value") if isinstance(data.get("total_amount"), dict) else data.get("total_amount")
+            start_d = data.get("period_start", {}).get("value") if isinstance(data.get("period_start"), dict) else data.get("period_start")
+            end_d = data.get("period_end", {}).get("value") if isinstance(data.get("period_end"), dict) else data.get("period_end")
+
+            vendor_final = vend_name or emp_name or "Timesheet Contributor"
+            try:
+                hours_val = float(total_h) if total_h is not None else 0.0
+            except ValueError:
+                hours_val = 0.0
+            try:
+                rate_val = float(rate) if rate is not None else 0.0
+            except ValueError:
+                rate_val = 0.0
+            try:
+                amount_final = float(amount) if amount is not None else (hours_val * rate_val)
+            except ValueError:
+                amount_final = hours_val * rate_val
+
+            fields = {
+                "vendor_name": vendor_final,
+                "vendor_address": None,
+                "vendor_tax_id": None,
+                "invoice_number": f"TS-{end_d or '2026-06'}",
+                "invoice_date": end_d or "2026-06-27",
+                "due_date": end_d or "2026-06-27",
+                "po_number": None,
+                "currency": "INR",
+                "payment_terms": "Immediate",
+                "subtotal": hours_val * rate_val,
+                "tax_rate": 0.0,
+                "tax_amount": 0.0,
+                "total_amount": amount_final,
+            }
+            confidence_map = {k: 0.95 for k in fields}
+            
+            line_items = [{
+                "description": f"Timesheet: {hours_val} hrs @ {rate_val}/hr for {emp_name or 'Contributor'}",
+                "quantity": hours_val,
+                "unit_price": rate_val,
+                "amount": amount_final,
+                "confidence": 0.95
+            }]
+            return {"fields": fields, "confidence_map": confidence_map, "line_items": line_items}
 
         simple_fields = [
             "vendor_name", "vendor_address", "vendor_tax_id",

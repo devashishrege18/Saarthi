@@ -101,8 +101,20 @@ class PipelineOrchestrator:
 
         log.info("pipeline.text_extracted", invoice_id=invoice_id, chars=len(raw_text), ocr_confidence=round(ocr_confidence, 3))
 
+        # Check if Gmail or Local PC is connected and if this is a timesheet/data sheet
+        from services.settings_store import load_settings
+        settings = load_settings()
+        
+        is_timesheet = False
+        content_lower = (raw_text + " " + invoice["file_name"]).lower()
+        timesheet_keywords = ["timesheet", "time sheet", "timecard", "time card", "hours worked", "activity log", "payroll", "weekly report", "data input", "data sheet"]
+        if any(kw in content_lower for kw in timesheet_keywords):
+            if settings.get("gmail_connected") or settings.get("local_pc_connected"):
+                is_timesheet = True
+                log.info("pipeline.selective_parsing", invoice_id=invoice_id, reason="Gmail/Local PC connected, doing selective timesheet parsing")
+
         # ─── Step 3: AI Field Extraction ──────────────────────────────────
-        extraction_result = await self.extraction.extract_fields(raw_text)
+        extraction_result = await self.extraction.extract_fields(raw_text, is_selective_timesheet=is_timesheet)
 
         fields = extraction_result.get("extracted_fields", {})
         confidence_map = extraction_result.get("confidence_map", {})

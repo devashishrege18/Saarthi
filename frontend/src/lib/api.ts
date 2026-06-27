@@ -203,3 +203,26 @@ export async function processInvoice(invoiceId: string): Promise<Invoice> {
     method: "POST",
   });
 }
+
+// ─── Settings Endpoints ──────────────────────────────────────────────────────
+
+export interface SystemSettings {
+  gmail_connected: boolean;
+  gmail_email: string;
+  local_pc_connected: boolean;
+  watch_folder: string;
+  auto_accept_timesheets: boolean;
+  selective_ai_parsing: boolean;
+}
+
+export async function getSettings(): Promise<SystemSettings> {
+  return apiFetch("/settings");
+}
+
+export async function updateSettings(settings: SystemSettings): Promise<SystemSettings> {
+  return apiFetch("/settings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(settings),
+  });
+}

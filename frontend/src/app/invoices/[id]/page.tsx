@@ -15,7 +15,6 @@ import {
   ClipboardList,
   Clock,
   Loader2,
-  ExternalLink,
 } from "lucide-react";
 import { getInvoice, type Invoice } from "@/lib/api";
 
@@ -25,12 +24,18 @@ function decColor(d: string | null | undefined) {
   return "var(--danger)";
 }
 
+function decBg(d: string | null | undefined) {
+  if (d === "AUTO_APPROVE" || d === "AUTO_APPROVED" || d === "HUMAN_APPROVED") return "var(--success-bg)";
+  if (d === "NEEDS_REVIEW") return "var(--warning-bg)";
+  return "var(--danger-bg)";
+}
+
 function decLabel(d: string | null | undefined) {
   if (d === "AUTO_APPROVE" || d === "AUTO_APPROVED") return "Auto-Approved";
-  if (d === "HUMAN_APPROVED") return "Approved by Reviewer";
+  if (d === "HUMAN_APPROVED") return "Approved";
   if (d === "NEEDS_REVIEW") return "Needs Review";
   if (d === "AUTO_REJECT" || d === "AUTO_REJECTED") return "Rejected";
-  if (d === "HUMAN_REJECTED") return "Rejected by Reviewer";
+  if (d === "HUMAN_REJECTED") return "Rejected";
   return d || "—";
 }
 
@@ -38,24 +43,24 @@ function TrustGauge({ score }: { score: number }) {
   const pct = Math.round(score * 100);
   const circumference = 2 * Math.PI * 54;
   const offset = circumference - (score * circumference);
-  const color = score >= 0.85 ? "var(--success)" : score >= 0.5 ? "var(--accent)" : "var(--danger)";
+  const color = score >= 0.85 ? "var(--success)" : score >= 0.5 ? "var(--warning)" : "var(--danger)";
 
   return (
     <div className="relative w-36 h-36">
       <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-        <circle cx="60" cy="60" r="54" fill="none" stroke="var(--border-default)" strokeWidth="5" />
+        <circle cx="60" cy="60" r="54" fill="none" stroke="var(--border-strong)" strokeWidth="5" />
         <motion.circle
           cx="60" cy="60" r="54" fill="none"
           stroke={color} strokeWidth="5" strokeLinecap="round"
           strokeDasharray={circumference}
           initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-bold text-[var(--text-primary)]">{pct}</span>
-        <span className="text-[10px] font-medium uppercase tracking-widest text-[var(--text-muted)]">Trust %</span>
+        <span className="text-3xl font-bold text-[var(--text-heading)]">{pct}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">Trust %</span>
       </div>
     </div>
   );
@@ -80,93 +85,102 @@ export default function InvoiceDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <Loader2 className="w-6 h-6 text-[var(--accent)] animate-spin" />
+        <Loader2 className="w-6 h-6 text-[var(--brand)] animate-spin" />
       </div>
     );
   }
 
   if (!invoice) {
     return (
-      <div className="flex flex-col items-center justify-center py-32">
-        <p className="text-[var(--text-muted)] mb-4">Invoice not found</p>
-        <Link href="/invoices" className="btn btn-ghost btn-sm">Back to Invoices</Link>
+      <div className="empty-state">
+        <p className="empty-state-title">Invoice record not found</p>
+        <button onClick={() => router.push("/invoices")} className="btn btn-secondary btn-sm">Back to Ledger</button>
       </div>
     );
   }
 
   const dna = invoice.decision_dna;
+  const isTimesheet = (invoice.vendor_name || invoice.file_name || "").toLowerCase().includes("timesheet") || invoice.file_name.toLowerCase().includes("timesheet") || invoice.file_name.toLowerCase().includes("data");
 
   return (
     <div>
-      {/* Back Nav */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6">
-        <button onClick={() => router.back()} className="flex items-center gap-1.5 text-[13px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors">
-          <ArrowLeft className="w-3.5 h-3.5" /> Back
+      {/* Back Navigation Link */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4">
+        <button onClick={() => router.back()} className="btn btn-ghost btn-sm flex items-center gap-1.5 px-0">
+          <ArrowLeft className="w-4 h-4" /> Back to Ledger
         </button>
       </motion.div>
 
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="card mb-4 overflow-hidden">
-        <div className="px-6 py-5 flex items-center justify-between" style={{ borderLeftWidth: 3, borderLeftColor: decColor(invoice.decision) }}>
+      {/* Main Header Card */}
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="card mb-6 overflow-hidden">
+        <div 
+          className="px-6 py-5 flex items-center justify-between" 
+          style={{ 
+            borderLeft: `4px solid ${decColor(invoice.decision)}`,
+            background: "var(--surface-0)" 
+          }}
+        >
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-[var(--bg-elevated)] flex items-center justify-center">
-              <FileText className="w-5 h-5 text-[var(--text-muted)]" />
+            <div className="w-10 h-10 rounded-lg bg-[var(--surface-2)] border border-[var(--border-default)] flex items-center justify-center">
+              <FileText className="w-5 h-5 text-[var(--text-secondary)]" />
             </div>
             <div>
-              <h1 className="text-[17px] font-semibold text-[var(--text-primary)]">{invoice.vendor_name || invoice.file_name}</h1>
-              <p className="text-[12px] text-[var(--text-tertiary)]">
-                {invoice.invoice_number || "—"} · {invoice.invoice_date || "—"} · {invoice.file_name}
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-bold text-[var(--text-heading)] m-0">{invoice.vendor_name || invoice.file_name}</h1>
+                {isTimesheet && (
+                  <span className="badge badge-brand">Timesheet</span>
+                )}
+              </div>
+              <p className="text-xs text-[var(--text-secondary)] m-0 mt-0.5">
+                Ref: <span className="mono font-semibold">{invoice.invoice_number || "—"}</span> · Ingested: {invoice.invoice_date || "—"} · Filename: {invoice.file_name}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-[12px] px-3 py-1 rounded-full font-medium" style={{
-              background: decColor(invoice.decision) + "18",
+            <span className="badge" style={{
+              background: decBg(invoice.decision),
               color: decColor(invoice.decision),
+              borderColor: decColor(invoice.decision) + "40"
             }}>
               {decLabel(invoice.decision)}
             </span>
             {invoice.trust_score !== null && (
-              <span className="text-2xl font-bold mono" style={{ color: decColor(invoice.decision) }}>
+              <span className="text-3xl font-bold mono" style={{ color: decColor(invoice.decision) }}>
                 {Math.round(invoice.trust_score * 100)}%
               </span>
             )}
           </div>
         </div>
 
-        {/* Financial Data Grid */}
-        <div className="grid grid-cols-6 divide-x divide-[var(--border-subtle)] border-t border-[var(--border-subtle)]">
+        {/* Financial Details strip */}
+        <div className="grid grid-cols-6 divide-x divide-[var(--border-default)] border-t border-[var(--border-default)] bg-[var(--surface-1)]">
           {[
-            { label: "Total", value: invoice.total_amount ? `₹${invoice.total_amount.toLocaleString()}` : "—" },
-            { label: "Subtotal", value: invoice.subtotal ? `₹${invoice.subtotal.toLocaleString()}` : "—" },
-            { label: "Tax", value: invoice.tax_amount ? `₹${invoice.tax_amount.toLocaleString()}` : "—" },
+            { label: "Total Value", value: invoice.total_amount ? `₹${invoice.total_amount.toLocaleString()}` : "—" },
+            { label: "Subtotal Value", value: invoice.subtotal ? `₹${invoice.subtotal.toLocaleString()}` : "—" },
+            { label: "Tax Liability", value: invoice.tax_amount ? `₹${invoice.tax_amount.toLocaleString()}` : "—" },
             { label: "Currency", value: invoice.currency || "—" },
-            { label: "Due Date", value: invoice.due_date || "—" },
-            { label: "PO #", value: invoice.po_number || "—" },
+            { label: "Payment Due", value: invoice.due_date || "—" },
+            { label: "PO Number", value: invoice.po_number || "—" },
           ].map((item) => (
-            <div key={item.label} className="px-5 py-3">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)] mb-0.5">{item.label}</p>
-              <p className="text-[13px] font-medium text-[var(--text-primary)] mono">{item.value}</p>
+            <div key={item.label} className="px-5 py-3.5">
+              <p className="section-label mb-0.5">{item.label}</p>
+              <p className="text-[13px] font-semibold text-[var(--text-heading)] mono m-0">{item.value}</p>
             </div>
           ))}
         </div>
       </motion.div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 mb-4">
+      {/* Tabs list */}
+      <div className="flex items-center gap-2 mb-4">
         {[
           { key: "dna" as const, label: "Decision DNA™", icon: Dna },
-          { key: "validation" as const, label: "Validation", icon: ClipboardList },
-          { key: "audit" as const, label: "Audit Trail", icon: Clock },
+          { key: "validation" as const, label: "Verification Checks", icon: ClipboardList },
+          { key: "audit" as const, label: "Audit Log & Lifecycle", icon: Clock },
         ].map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-colors ${
-              tab === t.key
-                ? "bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-hover)]"
-                : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] border border-transparent"
-            }`}
+            className={`filter-pill flex items-center gap-1.5 ${tab === t.key ? 'active' : ''}`}
           >
             <t.icon className="w-3.5 h-3.5" />
             {t.label}
@@ -174,36 +188,36 @@ export default function InvoiceDetailPage() {
         ))}
       </div>
 
-      {/* Tab Content */}
-      <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+      {/* Tab Panels */}
+      <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15 }}>
         {tab === "dna" && dna && (
-          <div className="grid grid-cols-3 gap-4">
-            {/* Trust Score Gauge */}
+          <div className="grid grid-cols-3 gap-6">
+            {/* Left: Trust ring */}
             <div className="card p-6 flex flex-col items-center justify-center">
-              <p className="section-label mb-4">Trust Score</p>
+              <span className="section-label mb-4">Decision Confidence</span>
               <TrustGauge score={dna.trust_score} />
-              <p className="text-[11px] text-[var(--text-tertiary)] mt-3 text-center">
-                Confidence: <span className="font-medium text-[var(--text-secondary)]">{dna.confidence_level}</span>
+              <p className="text-xs text-[var(--text-secondary)] mt-4">
+                Confidence Grade: <span className="font-semibold text-[var(--text-heading)]">{dna.confidence_level}</span>
               </p>
             </div>
 
-            {/* Evidence Chain */}
-            <div className="card col-span-2 overflow-hidden">
-              <div className="px-5 py-3 border-b border-[var(--border-subtle)]">
-                <p className="section-label">Evidence Chain</p>
+            {/* Right: Evidence Chain */}
+            <div className="card col-span-2 overflow-hidden flex flex-col">
+              <div className="panel-header">
+                <span className="panel-header-title">Decision Explanation Evidence</span>
               </div>
-              <div className="divide-y divide-[var(--border-subtle)]">
+              <div className="divide-y divide-[var(--border-default)]">
                 {dna.evidence.map((e, i) => {
                   const isPass = e.startsWith("✓");
-                  const isFail = e.startsWith("✗");
+                  const isFail = e.startsWith("✗") || e.startsWith("critical");
                   const isWarn = e.startsWith("⚠");
                   return (
-                    <div key={i} className="px-5 py-3 flex items-start gap-3 text-[13px]">
-                      {isPass && <CheckCircle2 className="w-4 h-4 text-[var(--success-text)] flex-shrink-0 mt-0.5" />}
-                      {isFail && <XCircle className="w-4 h-4 text-[var(--danger-text)] flex-shrink-0 mt-0.5" />}
-                      {isWarn && <AlertTriangle className="w-4 h-4 text-[var(--warning-text)] flex-shrink-0 mt-0.5" />}
+                    <div key={i} className="px-5 py-3 flex items-start gap-3">
+                      {isPass && <CheckCircle2 className="w-4 h-4 text-[var(--success)] flex-shrink-0 mt-0.5" />}
+                      {isFail && <XCircle className="w-4 h-4 text-[var(--danger)] flex-shrink-0 mt-0.5" />}
+                      {isWarn && <AlertTriangle className="w-4 h-4 text-[var(--warning)] flex-shrink-0 mt-0.5" />}
                       {!isPass && !isFail && !isWarn && <Shield className="w-4 h-4 text-[var(--text-muted)] flex-shrink-0 mt-0.5" />}
-                      <span className="text-[var(--text-secondary)]">
+                      <span className="text-[var(--text-body)] text-xs">
                         {e.replace(/^[✓✗⚠]\s*/, "")}
                       </span>
                     </div>
@@ -212,73 +226,85 @@ export default function InvoiceDetailPage() {
               </div>
             </div>
 
+            {/* Bottom Left: Reason */}
+            <div className="card col-span-2 p-5">
+              <span className="section-label mb-2 block">System Reason Narrative</span>
+              <p style={{ fontSize: 13.5, color: "var(--text-body)", lineHeight: 1.5 }} className="m-0">{dna.reason}</p>
+            </div>
+
+            {/* Bottom Right: Suggested Action */}
+            <div className="card p-5" style={{ background: "var(--brand-light)", borderColor: "rgba(0,82,204,0.18)" }}>
+              <span className="section-label mb-2 block" style={{ color: "var(--brand)" }}>Suggested Actions</span>
+              <p style={{ fontSize: 13.5, color: "var(--brand)", lineHeight: 1.5, fontWeight: 500 }} className="m-0">{dna.suggested_action}</p>
+            </div>
+
             {/* Flags */}
             {dna.flags.length > 0 && (
               <div className="card col-span-3 overflow-hidden">
-                <div className="px-5 py-3 border-b border-[var(--border-subtle)]">
-                  <p className="section-label">Flags</p>
+                <div className="panel-header">
+                  <span className="panel-header-title">System Anomalies & Flags ({dna.flags.length})</span>
                 </div>
-                <div className="p-5 space-y-2">
+                <div className="p-5 space-y-2.5">
                   {dna.flags.map((f, i) => (
-                    <div key={i} className="flex items-start gap-2.5 text-[13px]">
-                      <AlertTriangle className="w-3.5 h-3.5 text-[var(--warning-text)] flex-shrink-0 mt-0.5" />
-                      <span className="text-[var(--text-secondary)]">{f}</span>
+                    <div key={i} className="flex items-start gap-2.5 text-xs p-3 rounded bg-[var(--danger-bg)] border border-[var(--danger-border)]">
+                      <AlertTriangle className="w-4 h-4 text-[var(--danger)] flex-shrink-0 mt-0.5" />
+                      <span className="text-[var(--danger-text)] font-medium">{f}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-
-            {/* Reason + Action */}
-            <div className="card col-span-2 p-5">
-              <p className="section-label mb-2">Reason</p>
-              <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">{dna.reason}</p>
-            </div>
-            <div className="card p-5">
-              <p className="section-label mb-2">Suggested Action</p>
-              <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">{dna.suggested_action}</p>
-            </div>
           </div>
         )}
 
         {tab === "dna" && !dna && (
-          <div className="card p-12 flex flex-col items-center justify-center">
-            <Dna className="w-8 h-8 text-[var(--text-muted)] opacity-20 mb-3" />
-            <p className="text-[13px] text-[var(--text-muted)]">Decision DNA™ not yet generated</p>
+          <div className="card p-12 flex flex-col items-center justify-center text-center">
+            <span className="section-label mb-4">Decision DNA™</span>
+            <p className="text-xs text-[var(--text-muted)]">Decision data is not calculated. Reprocess document to generate.</p>
           </div>
         )}
 
         {tab === "validation" && (
           <div className="card overflow-hidden">
+            <div className="panel-header">
+              <span className="panel-header-title">Rules Engine checks</span>
+            </div>
             {invoice.validation_results.length > 0 ? (
               <table className="data-table">
                 <thead>
                   <tr>
                     <th className="w-8"></th>
-                    <th>Rule</th>
-                    <th>Severity</th>
-                    <th>Evidence</th>
+                    <th>Audit Rule Check</th>
+                    <th>Severity Level</th>
+                    <th>Result Evidence Log</th>
                   </tr>
                 </thead>
                 <tbody>
                   {invoice.validation_results.map((v, i) => (
                     <tr key={i}>
                       <td>
-                        {v.status === "PASS" && <CheckCircle2 className="w-4 h-4 text-[var(--success-text)]" />}
-                        {v.status === "FAIL" && <XCircle className="w-4 h-4 text-[var(--danger-text)]" />}
-                        {v.status === "WARN" && <AlertTriangle className="w-4 h-4 text-[var(--warning-text)]" />}
+                        {v.status === "PASS" && <CheckCircle2 className="w-4 h-4 text-[var(--success)]" />}
+                        {v.status === "FAIL" && <XCircle className="w-4 h-4 text-[var(--danger)]" />}
+                        {v.status === "WARN" && <AlertTriangle className="w-4 h-4 text-[var(--warning)]" />}
                       </td>
-                      <td className="font-medium text-[var(--text-primary)] capitalize">{v.rule_name.replace(/_/g, " ")}</td>
-                      <td><span className={`badge ${v.severity === "CRITICAL" ? "badge-danger" : v.severity === "WARNING" ? "badge-warning" : "badge-neutral"}`}>{v.severity}</span></td>
-                      <td className="text-[12px] max-w-md">{v.evidence}</td>
+                      <td>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-heading)" }} className="capitalize">
+                          {v.rule_name.replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge ${v.severity === "CRITICAL" ? "badge-danger" : v.severity === "WARNING" ? "badge-warning" : "badge-neutral"}`}>
+                          {v.severity}
+                        </span>
+                      </td>
+                      <td className="text-xs max-w-md">{v.evidence}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : (
-              <div className="p-12 flex flex-col items-center justify-center">
-                <ClipboardList className="w-8 h-8 text-[var(--text-muted)] opacity-20 mb-3" />
-                <p className="text-[13px] text-[var(--text-muted)]">No validation results yet</p>
+              <div className="empty-state">
+                <p className="empty-state-title">No audit checks executed</p>
               </div>
             )}
           </div>
@@ -286,59 +312,65 @@ export default function InvoiceDetailPage() {
 
         {tab === "audit" && (
           <div className="card overflow-hidden">
+            <div className="panel-header">
+              <span className="panel-header-title">Operations Audit log trail</span>
+            </div>
             {invoice.audit_trail.length > 0 ? (
-              <div className="divide-y divide-[var(--border-subtle)]">
+              <div className="divide-y divide-[var(--border-default)]">
                 {invoice.audit_trail.map((event, i) => (
-                  <div key={i} className="px-5 py-3 flex items-center gap-4">
-                    <div className="w-2 h-2 rounded-full bg-[var(--accent)] flex-shrink-0" />
+                  <div key={i} className="px-5 py-4 flex items-center gap-4 hover:bg-[var(--surface-1)] transition-colors">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[var(--brand)] flex-shrink-0" />
                     <div className="flex-1">
-                      <p className="text-[13px] text-[var(--text-primary)]">{event.action}</p>
-                      <p className="text-[11px] text-[var(--text-muted)]">
-                        {event.actor} · {event.event_type}
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-heading)" }} className="m-0">{event.action}</p>
+                      <p className="text-xs text-[var(--text-secondary)] m-0 mt-0.5">
+                        Actor: <span style={{ textTransform: "capitalize" }}>{event.actor}</span> · Event: <code>{event.event_type}</code>
                       </p>
                     </div>
-                    <span className="text-[11px] text-[var(--text-muted)] mono">
-                      {new Date(event.created_at).toLocaleTimeString()}
+                    <span className="text-[11px] text-[var(--text-secondary)] mono font-medium">
+                      {new Date(event.created_at).toLocaleString()}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="p-12 flex flex-col items-center justify-center">
-                <Clock className="w-8 h-8 text-[var(--text-muted)] opacity-20 mb-3" />
-                <p className="text-[13px] text-[var(--text-muted)]">No audit events yet</p>
+              <div className="empty-state">
+                <p className="empty-state-title">Audit trail empty</p>
               </div>
             )}
           </div>
         )}
       </motion.div>
 
-      {/* Line Items */}
+      {/* Line Items Table */}
       {invoice.line_items.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="card overflow-hidden mt-4">
-          <div className="px-5 py-3 border-b border-[var(--border-subtle)]">
-            <p className="section-label">Line Items ({invoice.line_items.length})</p>
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="card overflow-hidden mt-6">
+          <div className="panel-header">
+            <span className="panel-header-title">Document Content Line Items ({invoice.line_items.length})</span>
           </div>
           <table className="data-table">
             <thead>
               <tr>
                 <th>Description</th>
-                <th className="text-right">Qty</th>
-                <th className="text-right">Unit Price</th>
-                <th className="text-right">Amount</th>
-                <th className="text-right">Confidence</th>
+                <th className="text-right">Quantity</th>
+                <th className="text-right">Unit Rate</th>
+                <th className="text-right">Line Total</th>
+                <th className="text-right">OCR Confidence</th>
               </tr>
             </thead>
             <tbody>
               {invoice.line_items.map((item, i) => (
                 <tr key={i}>
-                  <td className="text-[var(--text-primary)]">{item.description || "—"}</td>
+                  <td>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-heading)" }}>
+                      {item.description || "—"}
+                    </span>
+                  </td>
                   <td className="text-right mono">{item.quantity || "—"}</td>
                   <td className="text-right mono">₹{item.unit_price?.toLocaleString() || "—"}</td>
-                  <td className="text-right mono font-medium text-[var(--text-primary)]">₹{item.amount?.toLocaleString() || "—"}</td>
+                  <td className="text-right mono font-semibold text-[var(--text-heading)]">₹{item.amount?.toLocaleString() || "—"}</td>
                   <td className="text-right">
-                    <span className="mono text-[12px]" style={{
-                      color: item.confidence >= 0.85 ? "var(--success-text)" : item.confidence >= 0.5 ? "var(--warning-text)" : "var(--danger-text)"
+                    <span className="mono font-semibold" style={{
+                      color: item.confidence >= 0.85 ? "var(--success)" : item.confidence >= 0.5 ? "var(--warning)" : "var(--danger)"
                     }}>
                       {Math.round(item.confidence * 100)}%
                     </span>

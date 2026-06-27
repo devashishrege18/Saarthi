@@ -11,6 +11,7 @@ import {
   Clock,
   ChevronRight,
   Search,
+  Layers,
 } from "lucide-react";
 import { listInvoices, type Invoice, type InvoiceListResponse } from "@/lib/api";
 
@@ -39,51 +40,56 @@ export default function InvoicesPage() {
   }, [filter]);
 
   const filters = [
-    { value: "", label: "All" },
+    { value: "", label: "All Documents" },
     { value: "AUTO_APPROVED", label: "Approved" },
-    { value: "NEEDS_REVIEW", label: "Review" },
+    { value: "NEEDS_REVIEW", label: "Needs Review" },
     { value: "AUTO_REJECTED", label: "Rejected" },
   ];
 
   return (
     <div>
-      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex items-center justify-between mb-6">
+      {/* Page Header */}
+      <motion.div 
+        initial={{ opacity: 0, y: -8 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        transition={{ duration: 0.3 }} 
+        className="page-header"
+      >
         <div>
-          <h1 className="text-xl font-semibold text-[var(--text-primary)] mb-0.5">Invoices</h1>
-          <p className="text-[13px] text-[var(--text-tertiary)]">
-            {data ? `${data.total} invoice${data.total !== 1 ? "s" : ""} processed` : "Loading..."}
+          <h1 className="page-title">Document Ledger</h1>
+          <p className="page-subtitle">
+            {data ? `${data.total} document${data.total !== 1 ? "s" : ""} indexed` : "Loading ledger..."}
           </p>
         </div>
-        <Link href="/upload" className="btn btn-primary btn-sm">Upload</Link>
+        <Link href="/upload" className="btn btn-primary btn-sm">Upload Invoice</Link>
       </motion.div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-1.5 mb-4">
-        {filters.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => { setLoading(true); setFilter(f.value); }}
-            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
-              filter === f.value
-                ? "bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-hover)]"
-                : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] border border-transparent"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      {/* Toolbar & Filters */}
+      <div className="card mb-6" style={{ overflow: "hidden" }}>
+        <div className="toolbar flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {filters.map((f) => (
+              <button
+                key={f.value}
+                onClick={() => { setLoading(true); setFilter(f.value); }}
+                className={`filter-pill ${filter === f.value ? 'active' : ''}`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      {/* Table */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.3 }} className="card overflow-hidden">
+        {/* Data Table */}
         {loading ? (
           <div className="p-6 space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex gap-4">
+              <div key={i} className="flex gap-6 items-center">
                 <div className="skeleton h-4 w-32" />
                 <div className="skeleton h-4 w-24" />
                 <div className="skeleton h-4 w-20" />
                 <div className="skeleton h-4 w-16" />
+                <div className="skeleton h-4 w-28" />
               </div>
             ))}
           </div>
@@ -91,38 +97,47 @@ export default function InvoicesPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Vendor</th>
-                <th>Invoice #</th>
-                <th>Amount</th>
-                <th>Trust</th>
-                <th>Status</th>
-                <th>Date</th>
+                <th>Document Source</th>
+                <th>Type</th>
+                <th>Reference #</th>
+                <th>Total Value</th>
+                <th>Trust Score</th>
+                <th>Workflow Status</th>
+                <th>Ingestion Date</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {data.invoices.map((inv, i) => {
                 const info = getStatusInfo(inv.status);
+                const isTimesheet = (inv.vendor_name || inv.file_name || "").toLowerCase().includes("timesheet") || inv.file_name.toLowerCase().includes("timesheet") || inv.file_name.toLowerCase().includes("data");
                 return (
                   <motion.tr
                     key={inv.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.03 }}
+                    transition={{ delay: i * 0.02 }}
                   >
                     <td>
-                      <span className="text-[var(--text-primary)] font-medium">
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-heading)" }}>
                         {inv.vendor_name || inv.file_name}
                       </span>
                     </td>
+                    <td>
+                      {isTimesheet ? (
+                        <span className="badge badge-brand" style={{ fontSize: 9.5 }}>Timesheet</span>
+                      ) : (
+                        <span className="badge badge-neutral" style={{ fontSize: 9.5 }}>Invoice</span>
+                      )}
+                    </td>
                     <td className="mono text-[12px]">{inv.invoice_number || "—"}</td>
-                    <td className="mono font-medium text-[var(--text-primary)]">
+                    <td className="mono font-semibold text-[var(--text-heading)]">
                       {inv.total_amount ? `₹${inv.total_amount.toLocaleString()}` : "—"}
                     </td>
                     <td>
                       {inv.trust_score !== null ? (
-                        <span className="mono text-[12px] font-medium" style={{
-                          color: inv.trust_score >= 0.85 ? "var(--success-text)" : inv.trust_score >= 0.5 ? "var(--warning-text)" : "var(--danger-text)"
+                        <span className="mono font-semibold" style={{
+                          color: inv.trust_score >= 0.85 ? "var(--success)" : inv.trust_score >= 0.5 ? "var(--warning)" : "var(--danger)"
                         }}>
                           {Math.round(inv.trust_score * 100)}%
                         </span>
@@ -131,8 +146,12 @@ export default function InvoicesPage() {
                     <td><span className={`badge ${info.badge}`}>{info.label}</span></td>
                     <td className="text-[12px]">{inv.invoice_date || inv.created_at?.slice(0, 10) || "—"}</td>
                     <td>
-                      <Link href={`/invoices/${inv.id}`} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
-                        <ChevronRight className="w-4 h-4" />
+                      <Link 
+                        href={`/invoices/${inv.id}`} 
+                        className="btn btn-ghost btn-sm px-2"
+                        style={{ minWidth: "auto" }}
+                      >
+                        <ChevronRight className="w-4 h-4 text-[var(--text-muted)]" />
                       </Link>
                     </td>
                   </motion.tr>
@@ -141,13 +160,15 @@ export default function InvoicesPage() {
             </tbody>
           </table>
         ) : (
-          <div className="flex flex-col items-center justify-center py-16">
-            <FileText className="w-8 h-8 text-[var(--text-muted)] opacity-20 mb-3" />
-            <p className="text-[13px] text-[var(--text-muted)] mb-3">No invoices found</p>
-            <Link href="/upload" className="btn btn-ghost btn-sm">Upload Invoice</Link>
+          <div className="empty-state">
+            <div className="empty-state-icon">
+              <FileText className="w-6 h-6 text-[var(--text-muted)]" />
+            </div>
+            <p className="empty-state-title">No matching records</p>
+            <p className="empty-state-desc">Try changing your filter settings or upload a new financial document.</p>
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }

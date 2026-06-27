@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="SAARTHI continuously monitors your connected Gmail or Outlook inbox, detects incoming timesheets, validates every financial decision and prepares invoices with human oversight only where necessary." />
+  <title>SAARTHI — Trust Every Decision.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ─── Navigation ────────────────────────────────────────────────────────── -->
+  <nav class="nav" id="nav" aria-label="Primary navigation">
+    <div class="container nav__inner">
+      <a href="#" class="nav__brand" aria-label="SAARTHI home">
+        <img src="logo-icon-v2.png" alt="" class="nav__logo-icon" aria-hidden="true" />
+        <span class="nav__wordmark">SAARTHI</span>
+      </a>
+
+      <ul class="nav__links" role="list">
+        <li><a href="#workflow" class="nav__link">Workflow</a></li>
+        <li><a href="#dashboard" class="nav__link">Dashboard</a></li>
+        <li><a href="#features" class="nav__link">Features</a></li>
+        <li><a href="#about" class="nav__link">About</a></li>
+      </ul>
+
+      <div class="nav__actions">
+        <a href="http://localhost:3000" target="_blank" class="nav__app-link">Open App</a>
+        <a href="#connect" class="btn btn--primary btn--sm" id="nav-cta">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          Connect Gmail
+        </a>
+      </div>
+
+      <button class="nav__toggle" id="nav-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="nav-mobile">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+    <div class="nav__mobile" id="nav-mobile" aria-hidden="true">
+      <ul role="list">
+        <li><a href="#workflow">Workflow</a></li>
+        <li><a href="#dashboard">Dashboard</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#about">About</a></li>
+      </ul>
+      <a href="#connect" class="btn btn--primary">Connect Gmail</a>
+    </div>
+  </nav>
+
+  <!-- ─── Hero ──────────────────────────────────────────────────────────────── -->
+  <section class="hero" id="home" aria-labelledby="hero-heading">
+    <div class="hero__bg" aria-hidden="true">
+      <canvas id="hero-canvas"></canvas>
+      <div class="hero__glow hero__glow--1"></div>
+      <div class="hero__glow hero__glow--2"></div>
+      <div class="hero__glow hero__glow--3"></div>
+    </div>
+
+    <!-- Floating status indicators -->
+    <div class="hero__float hero__float--tl" aria-hidden="true">
+      <div class="float-card float-card--email">
+        <div class="float-card__icon">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        </div>
+        <div class="float-card__content">
+          <span class="float-card__label">Timesheet received</span>
+          <span class="float-card__value">Acme Corp · Q4 Report</span>
+        </div>
+        <span class="float-card__badge float-card__badge--blue">INBOX</span>
+      </div>
+    </div>
+
+    <div class="hero__float hero__float--tr" aria-hidden="true">
+      <div class="float-card float-card--verified">
+        <div class="float-card__pulse"></div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Vendor verified — TrustScore 96%</span>
+        <span class="float-card__badge float-card__badge--green">VERIFIED</span>
+      </div>
+    </div>
+
+    <div class="hero__float hero__float--bl" aria-hidden="true">
+      <div class="float-card float-card--dna">
+        <span class="float-card__label">Decision DNA™</span>
+        <div class="float-card__bars">
+          <div class="dna-bar" style="height:60%;background:var(--brand-400)"></div>
+          <div class="dna-bar" style="height:85%;background:var(--brand-500)"></div>
+          <div class="dna-bar" style="height:45%;background:var(--brand-400)"></div>
+          <div class="dna-bar" style="height:100%;background:var(--success)"></div>
+          <div class="dna-bar" style="height:70%;background:var(--brand-500)"></div>
+          <div class="dna-bar" style="height:55%;background:var(--brand-400)"></div>
+        </div>
+        <span class="float-card__score">AUTO_APPROVED · 0.94</span>
+      </div>
+    </div>
+
+    <div class="hero__float hero__float--br" aria-hidden="true">
+      <div class="float-card float-card--invoice">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div>
+          <span class="float-card__label">Invoice generated</span>
+          <span class="float-card__value">INV-2026-0847 · ₹1,24,500</span>
+        </div>
+        <span class="float-card__badge float-card__badge--amber">READY</span>
+      </div>
+    </div>
+
+    <div class="container hero__content">
+      <div class="hero__eyebrow">
+        <span class="hero__eyebrow-dot" aria-hidden="true"></span>
+        Autonomous Financial Operations Companion
+      </div>
+
+      <h1 class="hero__headline" id="hero-heading">
+        From Inbox<br />to Invoice.<br />
+        <span class="hero__headline--accent">Autonomously.</span>
+      </h1>
+
+      <p class="hero__sub">
+        SAARTHI continuously monitors your connected Gmail or Outlook inbox,
+        detects incoming timesheets, validates every financial decision and
+        prepares invoices — with human oversight only where necessary.
+      </p>
+
+      <p class="hero__note">No uploads. No manual work.</p>
+
+      <div class="hero__actions">
+        <a href="#connect" class="btn btn--primary btn--lg" id="hero-gmail">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          Connect Gmail
+        </a>
+        <a href="#connect" class="btn btn--outline btn--lg" id="hero-outlook">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          Connect Outlook
+        </a>
+      </div>
+
+      <div class="hero__trust">
+        <div class="hero__trust-item">
+          <span class="hero__trust-number">98.4%</span>
+          <span class="hero__trust-label">Auto-approval rate</span>
+        </div>
+        <div class="hero__trust-divider" aria-hidden="true"></div>
+        <div class="hero__trust-item">
+          <span class="hero__trust-number">&lt; 4s</span>
+          <span class="hero__trust-label">Processing time</span>
+        </div>
+        <div class="hero__trust-divider" aria-hidden="true"></div>
+        <div class="hero__trust-item">
+          <span class="hero__trust-number">0</span>
+          <span class="hero__trust-label">Manual uploads required</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero__scroll-indicator" aria-hidden="true">
+      <span>Scroll</span>
+      <div class="hero__scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- ─── Workflow Pipeline ──────────────────────────────────────────────────── -->
+  <section class="workflow" id="workflow" aria-labelledby="workflow-heading">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">Intelligent Pipeline</div>
+        <h2 class="section-title" id="workflow-heading">
+          Connect once.<br />The pipeline handles everything.
+        </h2>
+        <p class="section-sub">
+          From the moment a timesheet lands in your inbox, SAARTHI's deterministic
+          orchestration pipeline takes over — no human intervention required.
+        </p>
+      </div>
+
+      <div class="pipeline" id="pipeline" role="list" aria-label="Processing pipeline stages">
+        <div class="pipeline__track" aria-hidden="true">
+          <div class="pipeline__track-fill" id="pipeline-fill"></div>
+        </div>
+
+        <div class="pipeline__stages">
+
+          <div class="pipeline__stage" data-stage="0" role="listitem">
+            <div class="pipeline__node" aria-hidden="true">
+              <div class="pipeline__node-ring"></div>
+              <div class="pipeline__node-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              </div>
+            </div>
+            <div class="pipeline__label">
+              <span class="pipeline__step">01</span>
+              <span class="pipeline__name">Inbox Connection</span>
+              <span class="pipeline__desc">Gmail or Outlook authenticated via OAuth 2.0</span>
+            </div>
+          </div>
+
+          <div class="pipeline__stage" data-stage="1" role="listitem">
+            <div class="pipeline__node" aria-hidden="true">
+              <div class="pipeline__node-ring"></div>
+              <div class="pipeline__node-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4a2 2 0 0 1 2-2.18h3a2 2 0 0 1 2 1.72"/><path d="M16 2a4 4 0 0 1 4 4"/><path d="M16 6h.01"/></svg>
+              </div>
+            </div>
+            <div class="pipeline__label">
+              <span class="pipeline__step">02</span>
+              <span class="pipeline__name">Email Listener</span>
+              <span class="pipeline__desc">Continuous monitoring of incoming attachments</span>
+            </div>
+          </div>
+
+          <div class="pipeline__stage" data-stage="2" role="listitem">
+            <div class="pipeline__node" aria-hidden="true">
+              <div class="pipeline__node-ring"></div>
+              <div class="pipeline__node-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>
+              </div>
+            </div>
+            <div class="pipeline__label">
+              <span class="pipeline__step">03</span>
+              <span class="pipeline__name">Timesheet Detected</span>
+              <span class="pipeline__desc">AI pattern recognition triggers document pipeline</span>
+            </div>
+          </div>
+
+          <div class="pipeline__stage" data-stage="3" role="listitem">
+            <div class="pipeline__node" aria-hidden="true">
+              <div class="pipeline__node-ring"></div>
+              <div class="pipeline__node-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              </div>
+            </div>
+            <div class="pipeline__label">
+              <span class="pipeline__step">04</span>
+              <span class="pipeline__name">OCR + Intelligence</span>
+              <span class="pipeline__desc">Field extraction with confidence scoring per token</span>
+            </div>
+          </div>
+
+          <div class="pipeline__stage" data-stage="4" role="listitem">
+            <div class="pipeline__node" aria-hidden="true">
+              <div class="pipeline__node-ring"></div>
+              <div class="pipeline__node-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+            </div>
+            <div class="pipeline__label">
+              <span class="pipeline__step">05</span>
+              <span class="pipeline__name">Decision Intelligence</span>
+              <span class="pipeline__desc">Deterministic rules engine — zero black-box decisions</span>
+            </div>
+          </div>
+
+          <div class="pipeline__stage" data-stage="5" role="listitem">
+            <div class="pipeline__node" aria-hidden="true">
+              <div class="pipeline__node-ring"></div>
+              <div class="pipeline__node-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 2H3v16h5v4l4-4h5l4-4V2z"/><path d="M11 11V7"/><path d="M11 15v.01"/></svg>
+              </div>
+            </div>
+            <div class="pipeline__label">
+              <span class="pipeline__step">06</span>
+              <span class="pipeline__name">Decision DNA™</span>
+              <span class="pipeline__desc">Fully explainable audit trail for every decision</span>
+            </div>
+          </div>
+
+          <div class="pipeline__stage" data-stage="6" role="listitem">
+            <div class="pipeline__node" aria-hidden="true">
+              <div class="pipeline__node-ring"></div>
+              <div class="pipeline__node-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="16 13 12 17 8 13"/><line x1="12" x2="12" y1="17" y2="9"/></svg>
+              </div>
+            </div>
+            <div class="pipeline__label">
+              <span class="pipeline__step">07</span>
+              <span class="pipeline__name">Invoice Ready</span>
+              <span class="pipeline__desc">ERP-ready output with structured data export</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Dashboard Preview ─────────────────────────────────────────────────── -->
+  <section class="dashboard-section" id="dashboard" aria-labelledby="dashboard-heading">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">Live Operations Console</div>
+        <h2 class="section-title" id="dashboard-heading">
+          Your financial operations,<br />visible in real time.
+        </h2>
+        <p class="section-sub">
+          Every decision, every document, every trust signal — surfaced in a single
+          enterprise monitoring interface.
+        </p>
+      </div>
+
+      <div class="console" aria-label="Dashboard preview">
+        <!-- Console Header Bar -->
+        <div class="console__bar" aria-hidden="true">
+          <div class="console__dots">
+            <span class="console__dot console__dot--red"></span>
+            <span class="console__dot console__dot--amber"></span>
+            <span class="console__dot console__dot--green"></span>
+          </div>
+          <span class="console__title">SAARTHI Operations Console — Financial Operations</span>
+          <div class="console__status">
+            <span class="console__live-dot"></span>
+            <span>Live</span>
+          </div>
+        </div>
+
+        <!-- Console Body -->
+        <div class="console__body">
+          <!-- Left sidebar nav -->
+          <aside class="console__sidebar" aria-hidden="true">
+            <div class="console__sidebar-item console__sidebar-item--active">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+              Dashboard
+            </div>
+            <div class="console__sidebar-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              Inbox Feed
+            </div>
+            <div class="console__sidebar-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+              Invoices
+            </div>
+            <div class="console__sidebar-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Review Queue
+            </div>
+          </aside>
+
+          <!-- Main content area -->
+          <div class="console__main">
+            <!-- KPI row -->
+            <div class="console__kpis" aria-label="Key performance indicators">
+              <div class="console__kpi">
+                <span class="console__kpi-label">Total Processed</span>
+                <span class="console__kpi-val" data-target="1284">0</span>
+                <span class="console__kpi-sub console__kpi-sub--green">+12 today</span>
+              </div>
+              <div class="console__kpi">
+                <span class="console__kpi-label">Auto-Approved</span>
+                <span class="console__kpi-val" data-target="1261">0</span>
+                <span class="console__kpi-sub console__kpi-sub--green">98.2% rate</span>
+              </div>
+              <div class="console__kpi">
+                <span class="console__kpi-label">Under Review</span>
+                <span class="console__kpi-val" data-target="18">0</span>
+                <span class="console__kpi-sub console__kpi-sub--amber">Needs attention</span>
+              </div>
+              <div class="console__kpi">
+                <span class="console__kpi-label">Avg Trust Score</span>
+                <span class="console__kpi-val" id="trust-display">0%</span>
+                <span class="console__kpi-sub console__kpi-sub--green">HIGH confidence</span>
+              </div>
+            </div>
+
+            <!-- Chart row -->
+            <div class="console__mid">
+              <!-- Mini trust gauge -->
+              <div class="console__gauge-panel">
+                <span class="console__panel-label">Trust Index</span>
+                <div class="console__gauge" aria-label="Trust score gauge at 96%">
+                  <svg viewBox="0 0 120 120" width="120" height="120">
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="url(#gaugeGrad)" stroke-width="8"
+                      stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="314"
+                      class="gauge__arc" id="gauge-arc" transform="rotate(-90 60 60)"/>
+                    <defs>
+                      <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#3b82f6"/>
+                        <stop offset="100%" stop-color="#22c55e"/>
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div class="console__gauge-text">
+                    <span class="console__gauge-pct" id="gauge-pct">0%</span>
+                    <span class="console__gauge-lbl">Trust</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Recent activity feed -->
+              <div class="console__feed-panel">
+                <div class="console__feed-header">
+                  <span class="console__panel-label">Inbox Activity</span>
+                  <span class="console__feed-count">3 new</span>
+                </div>
+                <ul class="console__feed" role="list">
+                  <li class="console__feed-item console__feed-item--approved">
+                    <div class="console__feed-dot console__feed-dot--green"></div>
+                    <div class="console__feed-content">
+                      <span class="console__feed-name">Acme Corp · Timesheet June</span>
+                      <span class="console__feed-meta">AUTO_APPROVED · Trust 0.96 · ₹82,500</span>
+                    </div>
+                    <span class="console__feed-time">2m ago</span>
+                  </li>
+                  <li class="console__feed-item">
+                    <div class="console__feed-dot console__feed-dot--amber"></div>
+                    <div class="console__feed-content">
+                      <span class="console__feed-name">Globex Inc · Q2 Contractor</span>
+                      <span class="console__feed-meta">NEEDS_REVIEW · Trust 0.71 · ₹1,24,000</span>
+                    </div>
+                    <span class="console__feed-time">8m ago</span>
+                  </li>
+                  <li class="console__feed-item console__feed-item--approved">
+                    <div class="console__feed-dot console__feed-dot--green"></div>
+                    <div class="console__feed-content">
+                      <span class="console__feed-name">Initech · Monthly Services</span>
+                      <span class="console__feed-meta">AUTO_APPROVED · Trust 0.91 · ₹56,200</span>
+                    </div>
+                    <span class="console__feed-time">15m ago</span>
+                  </li>
+                  <li class="console__feed-item">
+                    <div class="console__feed-dot console__feed-dot--red"></div>
+                    <div class="console__feed-content">
+                      <span class="console__feed-name">Unknown Vendor · PO mismatch</span>
+                      <span class="console__feed-meta">AUTO_REJECTED · Trust 0.31 · ₹3,40,000</span>
+                    </div>
+                    <span class="console__feed-time">1h ago</span>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Decision DNA panel -->
+              <div class="console__dna-panel">
+                <span class="console__panel-label">Decision DNA™</span>
+                <div class="console__dna-item console__dna-item--pass">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  Vendor exists in approved list
+                </div>
+                <div class="console__dna-item console__dna-item--pass">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  Amount within approved limits
+                </div>
+                <div class="console__dna-item console__dna-item--pass">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  Tax calculation validated
+                </div>
+                <div class="console__dna-item console__dna-item--warn">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                  Due date 3 days past threshold
+                </div>
+                <div class="console__dna-item console__dna-item--pass">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  PO number cross-referenced
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-section__cta">
+        <a href="http://localhost:3000" target="_blank" class="btn btn--outline btn--md">
+          Open Live Dashboard
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Features ──────────────────────────────────────────────────────────── -->
+  <section class="features" id="features" aria-labelledby="features-heading">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">Core Capabilities</div>
+        <h2 class="section-title" id="features-heading">
+          Built for accounts payable.<br />Engineered for trust.
+        </h2>
+      </div>
+
+      <div class="features__grid" role="list">
+
+        <article class="feature-card" role="listitem">
+          <div class="feature-card__icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          </div>
+          <h3 class="feature-card__title">Inbox-First Architecture</h3>
+          <p class="feature-card__body">
+            Connect your corporate Gmail or Outlook once. SAARTHI monitors your inbox continuously, detecting financial documents the moment they arrive — no file uploads, no manual routing.
+          </p>
+          <div class="feature-card__tag">OAuth 2.0 · Zero-touch</div>
+        </article>
+
+        <article class="feature-card" role="listitem">
+          <div class="feature-card__icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          </div>
+          <h3 class="feature-card__title">Document Intelligence</h3>
+          <p class="feature-card__body">
+            Multi-modal extraction handles digital PDFs, scanned images, and spreadsheets. AI extracts vendor name, invoice number, amounts, tax, line items — with per-field confidence scoring.
+          </p>
+          <div class="feature-card__tag">OCR · LLM extraction</div>
+        </article>
+
+        <article class="feature-card" role="listitem">
+          <div class="feature-card__icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+          </div>
+          <h3 class="feature-card__title">Decision DNA™</h3>
+          <p class="feature-card__body">
+            Every approval, rejection, or escalation is backed by an immutable, explainable evidence chain. No black boxes. Every decision can be audited, questioned, and justified.
+          </p>
+          <div class="feature-card__tag">Explainable AI · Audit trail</div>
+        </article>
+
+        <article class="feature-card" role="listitem">
+          <div class="feature-card__icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <h3 class="feature-card__title">Trust Score Engine</h3>
+          <p class="feature-card__body">
+            A composite trust index — weighted across extraction confidence, validation rules, vendor history, and fraud signals — determines autonomous approval or human escalation.
+          </p>
+          <div class="feature-card__tag">Deterministic · Weighted scoring</div>
+        </article>
+
+        <article class="feature-card" role="listitem">
+          <div class="feature-card__icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <h3 class="feature-card__title">Human-in-the-Loop Review</h3>
+          <p class="feature-card__body">
+            When trust falls below threshold, SAARTHI escalates to a human reviewer — presenting the evidence, flagged anomalies, and Decision DNA™ to make the review fast and informed.
+          </p>
+          <div class="feature-card__tag">Selective escalation · Context-rich</div>
+        </article>
+
+        <article class="feature-card" role="listitem">
+          <div class="feature-card__icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          </div>
+          <h3 class="feature-card__title">ERP-Ready Output</h3>
+          <p class="feature-card__body">
+            Approved invoices are structured for direct ERP ingestion — vendor name, line items, tax, PO number, and payment terms exported in a standard format ready for SAP, Oracle, or Tally.
+          </p>
+          <div class="feature-card__tag">SAP · Oracle · Tally ready</div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Connect CTA ────────────────────────────────────────────────────────── -->
+  <section class="connect" id="connect" aria-labelledby="connect-heading">
+    <div class="connect__bg" aria-hidden="true">
+      <div class="connect__glow"></div>
+    </div>
+    <div class="container connect__inner">
+      <div class="connect__text">
+        <div class="section-eyebrow" style="text-align:left;margin-bottom:1rem;">Get started now</div>
+        <h2 class="connect__title" id="connect-heading">
+          Connect your inbox once.<br />
+          Everything else is<br />
+          <span class="connect__title--accent">autonomous.</span>
+        </h2>
+        <p class="connect__sub">
+          No implementation team. No training required. Connect your Gmail or Outlook inbox
+          and SAARTHI begins monitoring immediately. First invoice processed in under 60 seconds.
+        </p>
+        <div class="connect__actions">
+          <a href="#" class="btn btn--primary btn--lg" onclick="handleConnect('gmail', event)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            Connect Gmail
+          </a>
+          <a href="#" class="btn btn--ghost btn--lg" onclick="handleConnect('outlook', event)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            Connect Outlook
+          </a>
+        </div>
+        <p class="connect__disclaimer">
+          OAuth 2.0 authenticated. Read-only inbox access. No passwords stored.
+        </p>
+      </div>
+
+      <div class="connect__visual" aria-hidden="true">
+        <div class="connect__card-stack">
+          <div class="connect__card connect__card--back">
+            <div class="connect__card-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+            </div>
+            <div>
+              <div class="connect__card-title">Globex · Q2 2026</div>
+              <div class="connect__card-meta">₹2,14,500 · AUTO_APPROVED</div>
+            </div>
+            <div class="connect__card-score connect__card-score--high">0.94</div>
+          </div>
+
+          <div class="connect__card connect__card--mid">
+            <div class="connect__card-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+            </div>
+            <div>
+              <div class="connect__card-title">Initech · June Services</div>
+              <div class="connect__card-meta">₹56,200 · NEEDS_REVIEW</div>
+            </div>
+            <div class="connect__card-score connect__card-score--mid">0.71</div>
+          </div>
+
+          <div class="connect__card connect__card--front">
+            <div class="connect__card-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            </div>
+            <div>
+              <div class="connect__card-title">Acme Corp · Timesheet</div>
+              <div class="connect__card-meta">₹82,500 · AUTO_APPROVED</div>
+            </div>
+            <div class="connect__card-score connect__card-score--high">0.96</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── About ─────────────────────────────────────────────────────────────── -->
+  <section class="about" id="about" aria-labelledby="about-heading">
+    <div class="container about__inner">
+      <div class="about__philosophy">
+        <div class="section-eyebrow" style="text-align:left">Design Philosophy</div>
+        <h2 class="about__title" id="about-heading">
+          AI only where<br />reasoning is required.
+        </h2>
+        <p class="about__body">
+          SAARTHI uses AI selectively — for semantic extraction and pattern detection.
+          Every business rule is deterministic, auditable, and explainable.
+          No probabilistic black boxes in the decision path.
+        </p>
+        <blockquote class="about__quote">
+          "AI is used only where semantic reasoning is required. Business logic is deterministic and explainable."
+        </blockquote>
+      </div>
+
+      <div class="about__principles">
+        <div class="principle">
+          <div class="principle__number">01</div>
+          <div class="principle__content">
+            <h3 class="principle__title">Explainability First</h3>
+            <p class="principle__body">Every decision has a traceable, auditable evidence chain. No decision is ever "just the model said so."</p>
+          </div>
+        </div>
+        <div class="principle">
+          <div class="principle__number">02</div>
+          <div class="principle__content">
+            <h3 class="principle__title">Deterministic Core</h3>
+            <p class="principle__body">Validation, scoring, and routing are pure logic. AI handles extraction. Rules handle decisions.</p>
+          </div>
+        </div>
+        <div class="principle">
+          <div class="principle__number">03</div>
+          <div class="principle__content">
+            <h3 class="principle__title">Human Authority</h3>
+            <p class="principle__body">SAARTHI requests human review — never demands blind trust. The human always has final authority.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Footer ────────────────────────────────────────────────────────────── -->
+  <footer class="footer" role="contentinfo">
+    <div class="container footer__inner">
+      <div class="footer__brand">
+        <div class="footer__logo">
+          <img src="logo-icon-v2.png" alt="" class="footer__logo-icon" aria-hidden="true" />
+          <span class="footer__wordmark">SAARTHI</span>
+        </div>
+        <p class="footer__desc">
+          Autonomous Financial Operations Companion.<br />
+          Built for modern accounts payable teams.
+        </p>
+      </div>
+
+      <div class="footer__links">
+        <div class="footer__col">
+          <span class="footer__col-label">Product</span>
+          <a href="#workflow" class="footer__link">Workflow</a>
+          <a href="#dashboard" class="footer__link">Dashboard</a>
+          <a href="#features" class="footer__link">Features</a>
+          <a href="http://localhost:3000" target="_blank" class="footer__link">Open App</a>
+        </div>
+        <div class="footer__col">
+          <span class="footer__col-label">Technical</span>
+          <a href="http://localhost:8000/docs" target="_blank" class="footer__link">API Reference</a>
+          <a href="#" class="footer__link">Decision DNA™</a>
+          <a href="#" class="footer__link">Architecture</a>
+          <a href="#" class="footer__link">Trust Score</a>
+        </div>
+        <div class="footer__col">
+          <span class="footer__col-label">Connect</span>
+          <a href="#connect" class="footer__link">Connect Gmail</a>
+          <a href="#connect" class="footer__link">Connect Outlook</a>
+          <a href="#" class="footer__link">Enterprise</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="container footer__bottom">
+      <span class="footer__copy">© 2026 SAARTHI. Autonomous Financial Operations.</span>
+      <span class="footer__build">Built with deterministic precision.</span>
+    </div>
+  </footer>
+
+  <!-- ─── Connection Modal ──────────────────────────────────────────────────── -->
+  <div class="modal" id="connect-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
+    <div class="modal__backdrop" id="modal-backdrop"></div>
+    <div class="modal__panel">
+      <button class="modal__close" id="modal-close" aria-label="Close connection dialog">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+
+      <div class="modal__icon" id="modal-icon"></div>
+      <h3 class="modal__title" id="modal-title">Connect your inbox</h3>
+      <p class="modal__body" id="modal-body">
+        Authorise SAARTHI to monitor your inbox via OAuth 2.0. Read-only access. No emails are stored.
+      </p>
+
+      <div class="modal__steps">
+        <div class="modal__step modal__step--active" id="step-1">
+          <div class="modal__step-dot"></div>
+          <span>Authenticate via OAuth 2.0</span>
+        </div>
+        <div class="modal__step" id="step-2">
+          <div class="modal__step-dot"></div>
+          <span>Grant read-only inbox access</span>
+        </div>
+        <div class="modal__step" id="step-3">
+          <div class="modal__step-dot"></div>
+          <span>SAARTHI begins monitoring</span>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn--primary btn--lg" id="modal-cta" style="width:100%;justify-content:center;">
+        Authorise &amp; Connect
+      </button>
+
+      <p class="modal__disclaimer">OAuth 2.0 secured · Read-only access · No passwords stored</p>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>

@@ -75,11 +75,13 @@ from api.health import router as health_router
 from api.invoices import router as invoices_router
 from api.review import router as review_router
 from api.dashboard import router as dashboard_router
+from api.settings import router as settings_router
 
 app.include_router(health_router, prefix="/api/v1")
 app.include_router(invoices_router, prefix="/api/v1")
 app.include_router(review_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
+app.include_router(settings_router, prefix="/api/v1")
 
 
 @app.get("/")

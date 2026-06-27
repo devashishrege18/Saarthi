@@ -2,7 +2,7 @@
 
 **Trust Every Decision.**
 
-> Autonomous Financial Operations Companion — built for the [Mozilla.ai Build with Otari Hackathon](https://mozilla.ai) (Touchless Invoice Agent challenge).
+> Autonomous Financial Operations Companion — built for Touchless Invoice Agent challenge.
 
 SAARTHI transforms financial documents into **trustworthy, explainable financial decisions**. It is NOT an invoice OCR app — it's a complete decision intelligence platform with human-in-the-loop governance.
 
@@ -222,4 +222,4 @@ MIT
 
 ---
 
-Built for the **Mozilla.ai Build with Otari Hackathon** — Touchless Invoice Agent challenge.
+Built for the **Hackathon** — Touchless Invoice Agent challenge.
