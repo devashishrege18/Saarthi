@@ -23,8 +23,8 @@ SAARTHI transforms financial documents into **trustworthy, explainable financial
 ```
 ┌──────────┐    ┌──────────────┐    ┌─────────────────┐    ┌──────────────┐
 │  Upload  │───▶│  Ingestion   │───▶│  AI Extraction  │───▶│  Validation  │
-│  (PDF/   │    │  PDF/OCR/    │    │  Claude API     │    │  7 Rules     │
-│  Image)  │    │  Excel       │    │  (structured)   │    │  (determin.) │
+│  (PDF/   │    │  PDF/OCR/    │    │  Ollama/Claude  │    │  7 Rules     │
+│  Image)  │    │  Excel/Text) │    │  (structured)   │    │  (determin.) │
 └──────────┘    └──────────────┘    └─────────────────┘    └──────┬───────┘
                                                                   │
                                                                   ▼
@@ -41,7 +41,7 @@ SAARTHI transforms financial documents into **trustworthy, explainable financial
 2. **Everything else is deterministic** — validation rules, trust scoring, decision routing.
 3. **Every decision is explainable** — full evidence chain, confidence per field, audit trail.
 4. **Human approval is the final authority** — auto-approve only when confidence is high.
-5. **No AI wrappers** — direct Claude API calls, no LangChain/CrewAI/AutoGen.
+5. **No AI wrappers** — direct API calls, no LangChain/CrewAI/AutoGen.
 
 ## Tech Stack
 
@@ -50,23 +50,35 @@ SAARTHI transforms financial documents into **trustworthy, explainable financial
 | Frontend | Next.js 16, React, TailwindCSS, Framer Motion |
 | Backend | FastAPI, Python 3.13 |
 | Database | SQLite (WAL mode) |
-| OCR | PaddleOCR |
-| AI | Claude API (direct, no wrappers) |
+| OCR | PaddleOCR (optional) |
+| AI | **Ollama** (local, free) or Claude API — configurable |
+
+## LLM Providers
+
+SAARTHI supports multiple LLM backends — switch with one env var:
+
+| Provider | `LLM_PROVIDER=` | Cost | Best For |
+|---|---|---|---|
+| **Ollama + phi3** | `ollama` | **Free** | Local dev, hackathon demo |
+| **Ollama + Qwen2.5** | `ollama` | **Free** | Higher accuracy locally |
+| **Claude API** | `claude` | Paid | Production / cloud |
+| **Groq / Together** | `openai_compatible` | Free tier | Cloud without cost |
 
 ## Features
 
 ### Document Intelligence
-- Multi-format support: PDF (digital + scanned), PNG, JPEG, TIFF, Excel, CSV
+- Multi-format support: PDF (digital + scanned), PNG, JPEG, TIFF, Excel, CSV, TXT
 - Automatic document type classification
 - PaddleOCR for scanned documents with confidence scoring
 - PyMuPDF for digital PDF text extraction
+- Plain-text fallback for any readable file
 
 ### AI Extraction
 - Structured prompt engineering for 13+ invoice fields
 - Per-field confidence scoring (0.0–1.0)
 - Line item extraction with individual confidence
 - Token usage tracking for cost monitoring
-- Graceful fallback with regex heuristics
+- Graceful fallback with regex heuristics when no LLM available
 
 ### Validation Engine (7 Deterministic Rules)
 - **Mandatory Fields** — vendor, invoice#, date, total
@@ -101,19 +113,29 @@ SAARTHI transforms financial documents into **trustworthy, explainable financial
 ### Prerequisites
 - Python 3.11+
 - Node.js 18+
-- Claude API key (from [Anthropic](https://console.anthropic.com))
+- [Ollama](https://ollama.com) (free, local AI)
 
-### Backend
+### 1. Install Ollama + pull a model
+
+```bash
+# Install Ollama from https://ollama.com
+ollama pull phi3          # 2.2GB — fast on CPU
+# or
+ollama pull qwen2.5:7b    # 4.7GB — higher accuracy
+ollama serve              # starts on port 11434
+```
+
+### 2. Backend
 
 ```bash
 cd backend
 pip install -r requirements.txt
 cp .env.example .env
-# Edit .env — add your CLAUDE_API_KEY
+# .env already defaults to Ollama/phi3 — no API key needed!
 python -m uvicorn main:app --reload --port 8000
 ```
 
-### Frontend
+### 3. Frontend
 
 ```bash
 cd frontend
@@ -122,6 +144,24 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000)
+
+### Optional: Use Claude instead of Ollama
+
+```bash
+# In backend/.env:
+LLM_PROVIDER=claude
+CLAUDE_API_KEY=your-key-here
+```
+
+### Optional: Use Groq (free cloud inference)
+
+```bash
+# In backend/.env:
+LLM_PROVIDER=openai_compatible
+OPENAI_API_KEY=your-groq-key
+OPENAI_BASE_URL=https://api.groq.com/openai/v1
+OPENAI_MODEL=llama-3.3-70b-versatile
+```
 
 ## Project Structure
 
@@ -136,10 +176,12 @@ saarthi/
 │   ├── services/
 │   │   ├── ingestion.py       # Document intake + text extraction
 │   │   ├── ocr.py             # PaddleOCR wrapper
-│   │   ├── extraction.py      # Claude API for field extraction
+│   │   ├── extraction.py      # Multi-provider LLM extraction
 │   │   ├── pipeline.py        # Orchestrator (state machine)
 │   │   ├── validation.py      # 7 business rules
 │   │   └── decision.py        # Trust Score + Decision DNA
+│   ├── samples/
+│   │   └── sample_invoice.txt # Test invoice
 │   ├── config.py              # Environment configuration
 │   ├── database.py            # SQLite schema (7 tables)
 │   ├── models.py              # Pydantic domain models
@@ -148,7 +190,7 @@ saarthi/
 │   └── src/
 │       ├── app/
 │       │   ├── page.tsx        # Dashboard
-│       │   ├── upload/         # Upload + pipeline
+│       │   ├── upload/         # Upload + pipeline visualization
 │       │   ├── invoices/       # List + detail (Decision DNA)
 │       │   └── review/         # Human review queue
 │       ├── components/
@@ -158,6 +200,20 @@ saarthi/
 │           ├── api.ts          # Typed API client
 │           └── utils.ts        # Utilities
 └── README.md
+```
+
+## Verified E2E Test Result
+
+Tested with `phi3:latest` (Ollama, local, free):
+
+```
+Vendor: TechFlow Solutions Pvt. Ltd.   ✓ confidence: 1.0
+Invoice #: INV-2026-0847               ✓ confidence: 1.0
+Date: 2026-06-15                       ✓ confidence: 1.0
+Total: ₹4,42,500                       ✓ confidence: 1.0
+Trust Score: 0.865 (HIGH)
+LLM: ollama/phi3:latest
+Processing time: ~2 min on CPU
 ```
 
 ## License
