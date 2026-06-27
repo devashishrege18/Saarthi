@@ -19,10 +19,25 @@ DATABASE_PATH = BASE_DIR / os.getenv("DATABASE_PATH", "data/saarthi.db")
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-# ─── Claude API ───────────────────────────────────────────────────────────────
+# ─── LLM Configuration ────────────────────────────────────────────────────────
+# Supported providers: "ollama", "claude", "openai_compatible"
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")
+
+# Ollama (default — free, local)
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
+
+# Claude (optional — requires API key)
 CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY", "")
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-20250514")
-CLAUDE_MAX_TOKENS = int(os.getenv("CLAUDE_MAX_TOKENS", "4096"))
+
+# OpenAI-compatible (for any provider — Groq, Together, etc.)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+# Shared
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 
 # ─── Server ───────────────────────────────────────────────────────────────────
 HOST = os.getenv("HOST", "0.0.0.0")

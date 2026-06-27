@@ -1,6 +1,12 @@
 """
 SAARTHI — AI Extraction Service
-Calls Claude API directly (no wrappers) for semantic invoice field extraction.
+Multi-provider LLM integration for semantic invoice field extraction.
+
+Supported providers:
+  - ollama  (default, free, local — Qwen, Llama, Mistral, etc.)
+  - claude  (Anthropic API)
+  - openai_compatible  (OpenAI, Groq, Together, etc.)
+
 This is the ONLY module that makes LLM calls in the entire pipeline.
 """
 
@@ -9,7 +15,12 @@ import time
 import structlog
 import httpx
 
-from config import CLAUDE_API_KEY, CLAUDE_MODEL, CLAUDE_MAX_TOKENS
+from config import (
+    LLM_PROVIDER, LLM_MAX_TOKENS,
+    OLLAMA_BASE_URL, OLLAMA_MODEL,
+    CLAUDE_API_KEY, CLAUDE_MODEL,
+    OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL,
+)
 
 log = structlog.get_logger()
 
@@ -61,107 +72,235 @@ Respond with ONLY the JSON object. No markdown, no explanation."""
 
 
 class AIExtractionService:
-    """Calls Claude API for semantic invoice field extraction."""
+    """Calls LLM APIs for semantic invoice field extraction. Supports multiple providers."""
 
     def __init__(self):
-        self.api_key = CLAUDE_API_KEY
-        self.model = CLAUDE_MODEL
-        self.max_tokens = CLAUDE_MAX_TOKENS
-        self.api_url = "https://api.anthropic.com/v1/messages"
+        self.provider = LLM_PROVIDER
+        self.max_tokens = LLM_MAX_TOKENS
+
+        log.info("ai.init", provider=self.provider, model=self._get_model_name())
+
+    def _get_model_name(self) -> str:
+        if self.provider == "ollama":
+            return OLLAMA_MODEL
+        elif self.provider == "claude":
+            return CLAUDE_MODEL
+        else:
+            return OPENAI_MODEL
 
     async def extract_fields(self, raw_text: str) -> dict:
         """
-        Send invoice text to Claude for structured extraction.
-        Returns dict with: extracted_fields, confidence_map, usage, elapsed_ms
+        Send invoice text to LLM for structured extraction.
+        Routes to the configured provider.
         """
-        if not self.api_key or self.api_key == "your-claude-api-key-here":
-            log.warning("ai.extraction.no_key", message="Claude API key not configured, using mock extraction")
+        prompt = EXTRACTION_PROMPT.replace("{invoice_text}", raw_text[:8000])
+
+        if self.provider == "ollama":
+            return await self._call_ollama(prompt)
+        elif self.provider == "claude":
+            return await self._call_claude(prompt)
+        elif self.provider == "openai_compatible":
+            return await self._call_openai(prompt)
+        else:
+            log.warning("ai.unknown_provider", provider=self.provider)
             return self._mock_extraction(raw_text)
 
-        prompt = EXTRACTION_PROMPT.replace("{invoice_text}", raw_text[:8000])  # Limit input size
+    # ─── Ollama Provider ──────────────────────────────────────────────────────
+
+    async def _call_ollama(self, prompt: str) -> dict:
+        """Call Ollama's OpenAI-compatible endpoint (local, free)."""
+        model = OLLAMA_MODEL
+        url = f"{OLLAMA_BASE_URL}/v1/chat/completions"
 
         start_time = time.time()
-
         try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=120.0) as client:
                 response = await client.post(
-                    self.api_url,
-                    headers={
-                        "x-api-key": self.api_key,
-                        "anthropic-version": "2023-06-01",
-                        "content-type": "application/json",
-                    },
+                    url,
                     json={
-                        "model": self.model,
+                        "model": model,
+                        "messages": [{"role": "user", "content": prompt}],
                         "max_tokens": self.max_tokens,
-                        "messages": [
-                            {"role": "user", "content": prompt}
-                        ],
+                        "temperature": 0.1,
+                        "stream": False,
                     },
                 )
 
             elapsed_ms = int((time.time() - start_time) * 1000)
 
             if response.status_code != 200:
-                log.error(
-                    "ai.extraction.api_error",
-                    status=response.status_code,
-                    body=response.text[:500],
-                )
-                return self._mock_extraction(raw_text)
+                log.error("ai.ollama.error", status=response.status_code, body=response.text[:300])
+                return self._mock_extraction(prompt)
 
             result = response.json()
-            content = result.get("content", [{}])[0].get("text", "{}")
+            content = result.get("choices", [{}])[0].get("message", {}).get("content", "{}")
             usage = result.get("usage", {})
 
-            # Parse the JSON response
             extracted = self._parse_extraction(content)
 
-            log.info(
-                "ai.extraction.complete",
-                model=self.model,
-                prompt_tokens=usage.get("input_tokens", 0),
-                completion_tokens=usage.get("output_tokens", 0),
-                elapsed_ms=elapsed_ms,
-            )
+            log.info("ai.ollama.complete", model=model,
+                     prompt_tokens=usage.get("prompt_tokens", 0),
+                     completion_tokens=usage.get("completion_tokens", 0),
+                     elapsed_ms=elapsed_ms)
 
             return {
                 "extracted_fields": extracted.get("fields", {}),
                 "confidence_map": extracted.get("confidence_map", {}),
                 "line_items": extracted.get("line_items", []),
-                "llm_model": self.model,
+                "llm_model": f"ollama/{model}",
+                "prompt_tokens": usage.get("prompt_tokens", 0),
+                "completion_tokens": usage.get("completion_tokens", 0),
+                "extraction_time_ms": elapsed_ms,
+            }
+
+        except httpx.ConnectError:
+            log.error("ai.ollama.connection_refused", url=url,
+                      message="Is Ollama running? Start with: ollama serve")
+            return self._mock_extraction(prompt)
+        except httpx.TimeoutException:
+            log.error("ai.ollama.timeout", elapsed_ms=int((time.time() - start_time) * 1000))
+            return self._mock_extraction(prompt)
+        except Exception as e:
+            log.error("ai.ollama.error", error=str(e))
+            return self._mock_extraction(prompt)
+
+    # ─── Claude Provider ──────────────────────────────────────────────────────
+
+    async def _call_claude(self, prompt: str) -> dict:
+        """Call Anthropic Claude API directly."""
+        if not CLAUDE_API_KEY or CLAUDE_API_KEY == "your-claude-api-key-here":
+            log.warning("ai.claude.no_key", message="Claude API key not configured")
+            return self._mock_extraction(prompt)
+
+        model = CLAUDE_MODEL
+        start_time = time.time()
+
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": CLAUDE_API_KEY,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json",
+                    },
+                    json={
+                        "model": model,
+                        "max_tokens": self.max_tokens,
+                        "messages": [{"role": "user", "content": prompt}],
+                    },
+                )
+
+            elapsed_ms = int((time.time() - start_time) * 1000)
+
+            if response.status_code != 200:
+                log.error("ai.claude.error", status=response.status_code, body=response.text[:300])
+                return self._mock_extraction(prompt)
+
+            result = response.json()
+            content = result.get("content", [{}])[0].get("text", "{}")
+            usage = result.get("usage", {})
+
+            extracted = self._parse_extraction(content)
+
+            log.info("ai.claude.complete", model=model,
+                     prompt_tokens=usage.get("input_tokens", 0),
+                     completion_tokens=usage.get("output_tokens", 0),
+                     elapsed_ms=elapsed_ms)
+
+            return {
+                "extracted_fields": extracted.get("fields", {}),
+                "confidence_map": extracted.get("confidence_map", {}),
+                "line_items": extracted.get("line_items", []),
+                "llm_model": f"claude/{model}",
                 "prompt_tokens": usage.get("input_tokens", 0),
                 "completion_tokens": usage.get("output_tokens", 0),
                 "extraction_time_ms": elapsed_ms,
             }
 
-        except httpx.TimeoutException:
-            log.error("ai.extraction.timeout", elapsed_ms=int((time.time() - start_time) * 1000))
-            return self._mock_extraction(raw_text)
         except Exception as e:
-            log.error("ai.extraction.error", error=str(e))
-            return self._mock_extraction(raw_text)
+            log.error("ai.claude.error", error=str(e))
+            return self._mock_extraction(prompt)
+
+    # ─── OpenAI-Compatible Provider ───────────────────────────────────────────
+
+    async def _call_openai(self, prompt: str) -> dict:
+        """Call any OpenAI-compatible API (OpenAI, Groq, Together, etc.)."""
+        if not OPENAI_API_KEY:
+            log.warning("ai.openai.no_key", message="OpenAI API key not configured")
+            return self._mock_extraction(prompt)
+
+        model = OPENAI_MODEL
+        url = f"{OPENAI_BASE_URL}/chat/completions"
+        start_time = time.time()
+
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    url,
+                    headers={
+                        "Authorization": f"Bearer {OPENAI_API_KEY}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": model,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "max_tokens": self.max_tokens,
+                        "temperature": 0.1,
+                    },
+                )
+
+            elapsed_ms = int((time.time() - start_time) * 1000)
+
+            if response.status_code != 200:
+                log.error("ai.openai.error", status=response.status_code, body=response.text[:300])
+                return self._mock_extraction(prompt)
+
+            result = response.json()
+            content = result.get("choices", [{}])[0].get("message", {}).get("content", "{}")
+            usage = result.get("usage", {})
+
+            extracted = self._parse_extraction(content)
+
+            log.info("ai.openai.complete", model=model,
+                     prompt_tokens=usage.get("prompt_tokens", 0),
+                     completion_tokens=usage.get("completion_tokens", 0),
+                     elapsed_ms=elapsed_ms)
+
+            return {
+                "extracted_fields": extracted.get("fields", {}),
+                "confidence_map": extracted.get("confidence_map", {}),
+                "line_items": extracted.get("line_items", []),
+                "llm_model": f"openai/{model}",
+                "prompt_tokens": usage.get("prompt_tokens", 0),
+                "completion_tokens": usage.get("completion_tokens", 0),
+                "extraction_time_ms": elapsed_ms,
+            }
+
+        except Exception as e:
+            log.error("ai.openai.error", error=str(e))
+            return self._mock_extraction(prompt)
+
+    # ─── Response Parsing (shared across all providers) ───────────────────────
 
     def _parse_extraction(self, raw_json: str) -> dict:
-        """Parse and normalize the Claude extraction response."""
+        """Parse and normalize the LLM extraction response."""
         try:
-            # Clean potential markdown wrapping
             text = raw_json.strip()
+            # Clean markdown wrapping
             if text.startswith("```"):
                 text = text.split("\n", 1)[1] if "\n" in text else text[3:]
                 if text.endswith("```"):
                     text = text[:-3]
                 text = text.strip()
-            
             if text.startswith("json"):
                 text = text[4:].strip()
 
             data = json.loads(text)
         except json.JSONDecodeError as e:
-            log.error("ai.extraction.parse_error", error=str(e), raw=raw_json[:200])
+            log.error("ai.parse_error", error=str(e), raw=raw_json[:200])
             return {"fields": {}, "confidence_map": {}, "line_items": []}
 
-        # Separate values and confidences
         fields = {}
         confidence_map = {}
 
@@ -179,9 +318,8 @@ class AIExtractionService:
                 confidence_map[field_name] = field_data.get("confidence", 0.0)
             else:
                 fields[field_name] = field_data
-                confidence_map[field_name] = 0.5  # Unknown confidence
+                confidence_map[field_name] = 0.5
 
-        # Extract line items
         line_items = []
         raw_items = data.get("line_items", [])
         for item in raw_items:
@@ -198,49 +336,31 @@ class AIExtractionService:
             li["confidence"] = sum(li_conf.values()) / max(len(li_conf), 1)
             line_items.append(li)
 
-        return {
-            "fields": fields,
-            "confidence_map": confidence_map,
-            "line_items": line_items,
-        }
+        return {"fields": fields, "confidence_map": confidence_map, "line_items": line_items}
 
     def _mock_extraction(self, raw_text: str) -> dict:
-        """Fallback extraction when Claude API is unavailable. Attempts basic parsing."""
-        log.info("ai.extraction.mock", message="Using mock extraction (Claude unavailable)")
+        """Fallback when no LLM is available. Uses regex heuristics."""
+        log.info("ai.mock", message="Using regex fallback (no LLM available)")
 
-        # Try to extract some basic fields from text using simple heuristics
+        import re
         fields = {
-            "vendor_name": None,
-            "vendor_address": None,
-            "vendor_tax_id": None,
-            "invoice_number": None,
-            "invoice_date": None,
-            "due_date": None,
-            "po_number": None,
-            "currency": "INR",
-            "payment_terms": None,
-            "subtotal": None,
-            "tax_rate": None,
-            "tax_amount": None,
-            "total_amount": None,
+            "vendor_name": None, "vendor_address": None, "vendor_tax_id": None,
+            "invoice_number": None, "invoice_date": None, "due_date": None,
+            "po_number": None, "currency": "INR", "payment_terms": None,
+            "subtotal": None, "tax_rate": None, "tax_amount": None, "total_amount": None,
         }
-
         confidence_map = {k: 0.3 for k in fields}
 
-        # Simple heuristic: look for common patterns
-        import re
         lines = raw_text.split("\n")
-
         for line in lines:
-            line_lower = line.lower().strip()
-            # Invoice number
-            inv_match = re.search(r'invoice\s*(?:#|no|number|num)?[:\s]*([A-Za-z0-9\-/]+)', line_lower)
+            ll = line.lower().strip()
+
+            inv_match = re.search(r'invoice\s*(?:#|no|number|num)?[:\s]*([A-Za-z0-9\-/]+)', ll)
             if inv_match and not fields["invoice_number"]:
                 fields["invoice_number"] = inv_match.group(1).upper()
                 confidence_map["invoice_number"] = 0.5
 
-            # Total amount
-            total_match = re.search(r'(?:total|grand\s*total|amount\s*due)[:\s]*[₹$€£]?\s*([\d,]+\.?\d*)', line_lower)
+            total_match = re.search(r'(?:total|grand\s*total|amount\s*due)[:\s]*[₹$€£]?\s*([\d,]+\.?\d*)', ll)
             if total_match and not fields["total_amount"]:
                 try:
                     fields["total_amount"] = float(total_match.group(1).replace(",", ""))
@@ -249,11 +369,7 @@ class AIExtractionService:
                     pass
 
         return {
-            "extracted_fields": fields,
-            "confidence_map": confidence_map,
-            "line_items": [],
-            "llm_model": "mock",
-            "prompt_tokens": 0,
-            "completion_tokens": 0,
-            "extraction_time_ms": 0,
+            "extracted_fields": fields, "confidence_map": confidence_map,
+            "line_items": [], "llm_model": "mock/regex",
+            "prompt_tokens": 0, "completion_tokens": 0, "extraction_time_ms": 0,
         }
