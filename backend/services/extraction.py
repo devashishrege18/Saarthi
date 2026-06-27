@@ -70,6 +70,22 @@ INVOICE TEXT:
 
 Respond with ONLY the JSON object. No markdown, no explanation."""
 
+# Shorter prompt for fast local models (phi3, small llama, etc.)
+EXTRACTION_PROMPT_LOCAL = """Extract invoice fields as JSON. Return ONLY valid JSON, no explanation.
+
+Fields to extract:
+- vendor_name, invoice_number, invoice_date (YYYY-MM-DD), due_date (YYYY-MM-DD)
+- total_amount (number), subtotal (number), tax_amount (number), tax_rate (number)
+- currency, po_number, payment_terms
+- line_items: array of {description, quantity, unit_price, amount}
+
+For each field use: {"value": <value or null>, "confidence": <0.0-1.0>}
+
+INVOICE:
+{invoice_text}
+
+JSON:"""
+
 
 class AIExtractionService:
     """Calls LLM APIs for semantic invoice field extraction. Supports multiple providers."""
@@ -93,9 +109,11 @@ class AIExtractionService:
         Send invoice text to LLM for structured extraction.
         Routes to the configured provider.
         """
-        # Ollama gets truncated text for faster local inference
-        text_limit = 4000 if self.provider == "ollama" else 8000
-        prompt = EXTRACTION_PROMPT.replace("{invoice_text}", raw_text[:text_limit])
+        # Local models get a shorter prompt + less text for speed
+        if self.provider == "ollama":
+            prompt = EXTRACTION_PROMPT_LOCAL.replace("{invoice_text}", raw_text[:2000])
+        else:
+            prompt = EXTRACTION_PROMPT.replace("{invoice_text}", raw_text[:8000])
 
         if self.provider == "ollama":
             return await self._call_ollama(prompt)
@@ -110,9 +128,9 @@ class AIExtractionService:
     # ─── Ollama Provider ──────────────────────────────────────────────────────
 
     async def _call_ollama(self, prompt: str) -> dict:
-        """Call Ollama's OpenAI-compatible endpoint (local, free)."""
+        """Call Ollama native /api/generate endpoint (faster than OpenAI-compat)."""
         model = OLLAMA_MODEL
-        url = f"{OLLAMA_BASE_URL}/v1/chat/completions"
+        url = f"{OLLAMA_BASE_URL}/api/generate"
 
         start_time = time.time()
         try:
@@ -121,10 +139,13 @@ class AIExtractionService:
                     url,
                     json={
                         "model": model,
-                        "messages": [{"role": "user", "content": prompt}],
-                        "max_tokens": 2048,  # Reduced for faster local inference
-                        "temperature": 0.1,
+                        "prompt": prompt,
                         "stream": False,
+                        "options": {
+                            "temperature": 0.1,
+                            "num_predict": 1024,  # Limit tokens for speed
+                            "stop": ["\n\nINVOICE", "---"],
+                        },
                     },
                 )
 
@@ -135,14 +156,15 @@ class AIExtractionService:
                 return self._mock_extraction(prompt)
 
             result = response.json()
-            content = result.get("choices", [{}])[0].get("message", {}).get("content", "{}")
-            usage = result.get("usage", {})
+            content = result.get("response", "{}")
+            prompt_tokens = result.get("prompt_eval_count", 0)
+            completion_tokens = result.get("eval_count", 0)
 
             extracted = self._parse_extraction(content)
 
             log.info("ai.ollama.complete", model=model,
-                     prompt_tokens=usage.get("prompt_tokens", 0),
-                     completion_tokens=usage.get("completion_tokens", 0),
+                     prompt_tokens=prompt_tokens,
+                     completion_tokens=completion_tokens,
                      elapsed_ms=elapsed_ms)
 
             return {
@@ -150,8 +172,8 @@ class AIExtractionService:
                 "confidence_map": extracted.get("confidence_map", {}),
                 "line_items": extracted.get("line_items", []),
                 "llm_model": f"ollama/{model}",
-                "prompt_tokens": usage.get("prompt_tokens", 0),
-                "completion_tokens": usage.get("completion_tokens", 0),
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
                 "extraction_time_ms": elapsed_ms,
             }
 
