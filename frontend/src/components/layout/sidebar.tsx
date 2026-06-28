@@ -63,18 +63,17 @@ export function Sidebar() {
         gap: 12,
         flexShrink: 0,
       }}>
-        <div style={{
-          width: 32, height: 32,
-          borderRadius: 8,
-          background: "var(--brand)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-          boxShadow: "0 2px 8px rgba(0,82,204,0.35)",
-        }}>
-          <span style={{ color: "#fff", fontWeight: 700, fontSize: 14, letterSpacing: -0.5 }}>S</span>
-        </div>
+        <img
+          src="/logo-icon-v2.png"
+          alt="SAARTHI"
+          style={{
+            height: 36,
+            width: "auto",
+            display: "block",
+            flexShrink: 0,
+            objectFit: "contain"
+          }}
+        />
         <div>
           <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, letterSpacing: -0.3, lineHeight: 1.2 }}>
             SAARTHI
